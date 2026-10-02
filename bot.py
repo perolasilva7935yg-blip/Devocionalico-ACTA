@@ -2,17 +2,15 @@ import os
 import json
 import random
 import urllib.request
+import urllib.error
+import sys
 
 DISCORD_TOKEN = os.environ["DISCORD_TOKEN"]
 CHANNEL_ID = os.environ["CHANNEL_ID"]
-
-# ID do cargo "Membro"
-# Se não existir, o bot continua funcionando sem marcar o cargo.
-MEMBER_ROLE_ID = os.environ.get("MEMBER_ROLE_ID", "")
+MEMBER_ROLE_ID = os.environ.get("MEMBER_ROLE_ID", "").strip()
 
 API_URL = "https://api.midvash.com/v1"
 
-# Livros permitidos
 LIVROS = [
     ("Salmos", "psalms", 150),
     ("Provérbios", "proverbs", 31),
@@ -21,46 +19,28 @@ LIVROS = [
 
 
 def consultar_api(url):
-
     requisicao = urllib.request.Request(
         url,
         method="GET",
         headers={
-            "User-Agent": "Devocionalico/5.0",
-            "Accept": "application/json"
-        }
+            "User-Agent": "Devocionalico/6.0",
+            "Accept": "application/json",
+        },
     )
 
-    with urllib.request.urlopen(
-        requisicao,
-        timeout=30
-    ) as resposta:
-
+    with urllib.request.urlopen(requisicao, timeout=30) as resposta:
         return json.loads(
             resposta.read().decode("utf-8")
         )
 
 
 def escolher_versiculo():
-
-    while True:
-
-        nome_livro, slug, quantidade_capitulos = random.choice(
-            LIVROS
-        )
-
-        capitulo = random.randint(
-            1,
-            quantidade_capitulos
-        )
+    for tentativa in range(10):
+        nome_livro, slug, quantidade_capitulos = random.choice(LIVROS)
+        capitulo = random.randint(1, quantidade_capitulos)
 
         try:
-
-            url = (
-                f"{API_URL}/naa/"
-                f"{slug}/{capitulo}"
-            )
-
+            url = f"{API_URL}/naa/{slug}/{capitulo}"
             dados = consultar_api(url)
 
             versiculos = dados["data"]["verses"]
@@ -77,19 +57,20 @@ def escolher_versiculo():
                 nome_livro,
                 slug,
                 capitulo,
-                numero_versiculo
+                numero_versiculo,
             )
 
-        except Exception:
-            continue
+        except Exception as erro:
+            print(
+                f"⚠️ Tentativa {tentativa + 1} falhou: {erro}"
+            )
+
+    raise Exception(
+        "Não foi possível escolher um versículo."
+    )
 
 
-def pegar_versiculo(
-    slug,
-    capitulo,
-    versiculo
-):
-
+def pegar_versiculo(slug, capitulo, versiculo):
     url = (
         f"{API_URL}/naa/"
         f"{slug}/{capitulo}/{versiculo}"
@@ -101,48 +82,70 @@ def pegar_versiculo(
 
 
 def enviar_discord(mensagem):
-
     url = (
         f"https://discord.com/api/v10/"
         f"channels/{CHANNEL_ID}/messages"
     )
 
-    dados = json.dumps({
-        "content": mensagem
-    }).encode("utf-8")
+    dados = {
+        "content": mensagem,
+    }
+
+    if MEMBER_ROLE_ID:
+        dados["allowed_mentions"] = {
+            "roles": [MEMBER_ROLE_ID]
+        }
+
+    corpo = json.dumps(dados).encode("utf-8")
 
     requisicao = urllib.request.Request(
         url,
-        data=dados,
+        data=corpo,
         method="POST",
         headers={
             "Authorization": f"Bot {DISCORD_TOKEN}",
             "Content-Type": "application/json",
-            "User-Agent": "Devocionalico/5.0"
-        }
+            "User-Agent": "Devocionalico/6.0",
+        },
     )
 
-    with urllib.request.urlopen(
-        requisicao,
-        timeout=30
-    ) as resposta:
+    try:
+        with urllib.request.urlopen(
+            requisicao,
+            timeout=30
+        ) as resposta:
 
-        if resposta.status not in (200, 201):
-            raise Exception(
-                f"Discord respondeu: {resposta.status}"
+            status = resposta.status
+
+            print(
+                f"📨 Discord respondeu: {status}"
             )
+
+            if status not in (200, 201):
+                raise Exception(
+                    f"Discord respondeu: {status}"
+                )
+
+    except urllib.error.HTTPError as erro:
+        detalhes = erro.read().decode("utf-8")
+
+        print(
+            f"❌ Discord respondeu com erro {erro.code}:"
+        )
+        print(detalhes)
+
+        raise
 
 
 def main():
+    print("=" * 50)
+    print("🤖 DEVOCIONALICO")
+    print("🚀 Arquivo bot.py executado!")
+    print("=" * 50)
 
-    print("📖 Devocionalico iniciado!")
-
-    (
-        nome_livro,
-        slug,
-        capitulo,
-        versiculo
-    ) = escolher_versiculo()
+    nome_livro, slug, capitulo, versiculo = (
+        escolher_versiculo()
+    )
 
     referencia = (
         f"{nome_livro} "
@@ -156,15 +159,19 @@ def main():
     texto_naa = pegar_versiculo(
         slug,
         capitulo,
-        versiculo
+        versiculo,
     )
 
     if MEMBER_ROLE_ID:
         mencao = (
             f"<@&{MEMBER_ROLE_ID}>\n\n"
         )
+        print("👥 Cargo Membro será mencionado.")
     else:
         mencao = ""
+        print(
+            "⚠️ MEMBER_ROLE_ID não configurado."
+        )
 
     mensagem = f"""{mencao}📖 **DEVOCIONALICO**
 
@@ -179,12 +186,20 @@ def main():
 ᴮᵒᵗ ᵈᵒ ACTA
 """
 
+    print("📨 Enviando mensagem para o Discord...")
+
     enviar_discord(mensagem)
 
-    print(
-        "✅ Versículo enviado com sucesso!"
-    )
+    print("✅ VERSÍCULO ENVIADO COM SUCESSO!")
+    print("=" * 50)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as erro:
+        print("=" * 50)
+        print("❌ O DEVOCIONALICO FALHOU!")
+        print(f"Erro: {erro}")
+        print("=" * 50)
+        sys.exit(1)
