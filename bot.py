@@ -6,16 +6,19 @@ import urllib.request
 DISCORD_TOKEN = os.environ["DISCORD_TOKEN"]
 CHANNEL_ID = os.environ["CHANNEL_ID"]
 
-# O cargo Membro é opcional.
-# Se o segredo não existir, o bot continua funcionando.
+# ID do cargo "Membro"
+# Se não existir, o bot continua funcionando sem marcar o cargo.
 MEMBER_ROLE_ID = os.environ.get("MEMBER_ROLE_ID", "")
 
 API_URL = "https://api.midvash.com/v1"
 
+# Livros permitidos
+LIVROS = [
+    ("Salmos", "psalms", 150),
+    ("Provérbios", "proverbs", 31),
+    ("Eclesiastes", "ecclesiastes", 12),
+]
 
-# --------------------------------------------------
-# FAZER REQUISIÇÃO À API
-# --------------------------------------------------
 
 def consultar_api(url):
 
@@ -23,7 +26,7 @@ def consultar_api(url):
         url,
         method="GET",
         headers={
-            "User-Agent": "Devocionalico/3.0",
+            "User-Agent": "Devocionalico/4.0",
             "Accept": "application/json"
         }
     )
@@ -38,91 +41,12 @@ def consultar_api(url):
         )
 
 
-# --------------------------------------------------
-# LIVROS DA BÍBLIA
-# --------------------------------------------------
-
-LIVROS = [
-    ("Gênesis", "genesis", 50),
-    ("Êxodo", "exodo", 40),
-    ("Levítico", "levitico", 27),
-    ("Números", "numeros", 36),
-    ("Deuteronômio", "deuteronomio", 34),
-    ("Josué", "josue", 24),
-    ("Juízes", "juizes", 21),
-    ("Rute", "rute", 4),
-    ("1 Samuel", "1-samuel", 31),
-    ("2 Samuel", "2-samuel", 24),
-    ("1 Reis", "1-reis", 22),
-    ("2 Reis", "2-reis", 25),
-    ("1 Crônicas", "1-cronicas", 29),
-    ("2 Crônicas", "2-cronicas", 36),
-    ("Esdras", "esdras", 10),
-    ("Neemias", "neemias", 13),
-    ("Ester", "ester", 10),
-    ("Jó", "jo", 42),
-    ("Salmos", "salmos", 150),
-    ("Provérbios", "proverbios", 31),
-    ("Eclesiastes", "eclesiastes", 12),
-    ("Cânticos", "canticos", 8),
-    ("Isaías", "isaias", 66),
-    ("Jeremias", "jeremias", 52),
-    ("Lamentações", "lamentacoes", 5),
-    ("Ezequiel", "ezequiel", 48),
-    ("Daniel", "daniel", 12),
-    ("Oseias", "oseias", 14),
-    ("Joel", "joel", 3),
-    ("Amós", "amos", 9),
-    ("Obadias", "obadias", 1),
-    ("Jonas", "jonas", 4),
-    ("Miqueias", "miqueias", 7),
-    ("Naum", "naum", 3),
-    ("Habacuque", "habacuque", 3),
-    ("Sofonias", "sofonias", 3),
-    ("Ageu", "ageu", 2),
-    ("Zacarias", "zacarias", 14),
-    ("Malaquias", "malaquias", 4),
-
-    ("Mateus", "mateus", 28),
-    ("Marcos", "marcos", 16),
-    ("Lucas", "lucas", 24),
-    ("João", "joao", 21),
-    ("Atos", "atos", 28),
-    ("Romanos", "romanos", 16),
-    ("1 Coríntios", "1-corintios", 16),
-    ("2 Coríntios", "2-corintios", 13),
-    ("Gálatas", "galatas", 6),
-    ("Efésios", "efesios", 6),
-    ("Filipenses", "filipenses", 4),
-    ("Colossenses", "colossenses", 4),
-    ("1 Tessalonicenses", "1-tessalonicenses", 5),
-    ("2 Tessalonicenses", "2-tessalonicenses", 3),
-    ("1 Timóteo", "1-timoteo", 6),
-    ("2 Timóteo", "2-timoteo", 4),
-    ("Tito", "tito", 3),
-    ("Filemom", "filemom", 1),
-    ("Hebreus", "hebreus", 13),
-    ("Tiago", "tiago", 5),
-    ("1 Pedro", "1-pedro", 5),
-    ("2 Pedro", "2-pedro", 3),
-    ("1 João", "1-joao", 5),
-    ("2 João", "2-joao", 1),
-    ("3 João", "3-joao", 1),
-    ("Judas", "judas", 1),
-    ("Apocalipse", "apocalipse", 22)
-]
-
-
-# --------------------------------------------------
-# ESCOLHER UM VERSÍCULO REAL
-# --------------------------------------------------
-
 def escolher_versiculo():
 
     while True:
 
-        nome_livro, slug, quantidade_capitulos = (
-            random.choice(LIVROS)
+        nome_livro, slug, quantidade_capitulos = random.choice(
+            LIVROS
         )
 
         capitulo = random.randint(
@@ -157,13 +81,8 @@ def escolher_versiculo():
             )
 
         except Exception:
-
             continue
 
-
-# --------------------------------------------------
-# PEGAR TEXTO DO VERSÍCULO
-# --------------------------------------------------
 
 def pegar_versiculo(
     versao,
@@ -181,10 +100,6 @@ def pegar_versiculo(
 
     return dados["data"]["text"]
 
-
-# --------------------------------------------------
-# ENVIAR PARA O DISCORD
-# --------------------------------------------------
 
 def enviar_discord(mensagem):
 
@@ -204,7 +119,7 @@ def enviar_discord(mensagem):
         headers={
             "Authorization": f"Bot {DISCORD_TOKEN}",
             "Content-Type": "application/json",
-            "User-Agent": "Devocionalico/3.0"
+            "User-Agent": "Devocionalico/4.0"
         }
     )
 
@@ -214,15 +129,10 @@ def enviar_discord(mensagem):
     ) as resposta:
 
         if resposta.status not in (200, 201):
-
             raise Exception(
                 f"Discord respondeu: {resposta.status}"
             )
 
-
-# --------------------------------------------------
-# PROGRAMA PRINCIPAL
-# --------------------------------------------------
 
 def main():
 
@@ -258,14 +168,12 @@ def main():
         versiculo
     )
 
+    # Menção ao cargo Membro
     if MEMBER_ROLE_ID:
-
         mencao = (
             f"<@&{MEMBER_ROLE_ID}>\n\n"
         )
-
     else:
-
         mencao = ""
 
     mensagem = f"""{mencao}📖 **DEVOCIONALICO**
@@ -281,6 +189,7 @@ def main():
 🙏 Que a Palavra de Deus abençoe o seu dia!
 
 — 🤖 **Devocionalico**
+ᴮᵒᵗ ᵈᵒ ACTA
 """
 
     enviar_discord(mensagem)
