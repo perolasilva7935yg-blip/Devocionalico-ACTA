@@ -26,7 +26,7 @@ def consultar_api(url):
         url,
         method="GET",
         headers={
-            "User-Agent": "Devocionalico/4.0",
+            "User-Agent": "Devocionalico/5.0",
             "Accept": "application/json"
         }
     )
@@ -85,14 +85,13 @@ def escolher_versiculo():
 
 
 def pegar_versiculo(
-    versao,
     slug,
     capitulo,
     versiculo
 ):
 
     url = (
-        f"{API_URL}/{versao}/"
+        f"{API_URL}/naa/"
         f"{slug}/{capitulo}/{versiculo}"
     )
 
@@ -119,7 +118,7 @@ def enviar_discord(mensagem):
         headers={
             "Authorization": f"Bot {DISCORD_TOKEN}",
             "Content-Type": "application/json",
-            "User-Agent": "Devocionalico/4.0"
+            "User-Agent": "Devocionalico/5.0"
         }
     )
 
@@ -155,20 +154,11 @@ def main():
     )
 
     texto_naa = pegar_versiculo(
-        "naa",
         slug,
         capitulo,
         versiculo
     )
 
-    texto_ara = pegar_versiculo(
-        "ara",
-        slug,
-        capitulo,
-        versiculo
-    )
-
-    # Menção ao cargo Membro
     if MEMBER_ROLE_ID:
         mencao = (
             f"<@&{MEMBER_ROLE_ID}>\n\n"
@@ -182,9 +172,6 @@ def main():
 
 📘 **NAA — Nova Almeida Atualizada**
 > {texto_naa}
-
-📜 **ARA — Almeida Revista e Atualizada**
-> {texto_ara}
 
 🙏 Que a Palavra de Deus abençoe o seu dia!
 
