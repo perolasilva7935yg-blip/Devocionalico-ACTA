@@ -2,13 +2,8 @@ name: Devocionalico - Versículos
 
 on:
   schedule:
-    # 07:00 - horário de Brasília
     - cron: "0 10 * * *"
-
-    # 12:00 - horário de Brasília
     - cron: "0 15 * * *"
-
-    # 19:00 - horário de Brasília
     - cron: "0 22 * * *"
 
   workflow_dispatch:
@@ -18,11 +13,15 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Baixar o código
+      - name: 📥 Baixar o código
         uses: actions/checkout@v4
 
-      - name: Executar Devocionalico
-        run: python bot.py
+      - name: 🐍 Verificar Python
+        run: python --version
+
+      - name: 🤖 Executar Devocionalico
         env:
           DISCORD_TOKEN: ${{ secrets.DISCORD_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+          MEMBER_ROLE_ID: ${{ secrets.MEMBER_ROLE_ID }}
+        run: python bot.py
